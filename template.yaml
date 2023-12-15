@@ -1,0 +1,354 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  ws-planning-poker-backend
+
+Parameters:
+  PPConnectionsTableName:
+    Type: String
+    Default: "pp_connections"
+    Description: (Required) The name of the new DynamoDB to store connection identifiers for each connected clients. Minimum 3 characters
+    MinLength: 3
+    MaxLength: 50
+    AllowedPattern: ^[A-Za-z_]+$
+    ConstraintDescription: "Required. Can be characters and underscore only. No numbers or special characters allowed."
+  PPVotesTableName:
+    Type: String
+    Default: "pp_votes"
+    Description: (Required) The name of the new DynamoDB to store connection identifiers for each connected clients. Minimum 3 characters
+    MinLength: 3
+    MaxLength: 50
+    AllowedPattern: ^[A-Za-z_]+$
+    ConstraintDescription: "Required. Can be characters and underscore only. No numbers or special characters allowed."
+
+Resources:
+  WSPlanningPokerWebSocket:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: WSPlanningPokerWebSocket
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: "$request.body.action"
+  ConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WSPlanningPokerWebSocket
+      RouteKey: $connect
+      AuthorizationType: NONE
+      OperationName: ConnectRoute
+      Target: !Join
+        - "/"
+        - - "integrations"
+          - !Ref ConnectInteg
+  ConnectInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WSPlanningPokerWebSocket
+      Description: Connect Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OnConnectFunction.Arn}/invocations
+  DisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WSPlanningPokerWebSocket
+      RouteKey: $disconnect
+      AuthorizationType: NONE
+      OperationName: DisconnectRoute
+      Target: !Join
+        - "/"
+        - - "integrations"
+          - !Ref DisconnectInteg
+  DisconnectInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WSPlanningPokerWebSocket
+      Description: Disconnect Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OnDisconnectFunction.Arn}/invocations
+  SendRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WSPlanningPokerWebSocket
+      RouteKey: sendmessage
+      AuthorizationType: NONE
+      OperationName: SendRoute
+      Target: !Join
+        - "/"
+        - - "integrations"
+          - !Ref SendInteg
+  SendInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WSPlanningPokerWebSocket
+      Description: Send Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SendMessageFunction.Arn}/invocations
+  SetUserInfoRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WSPlanningPokerWebSocket
+      RouteKey: setuserinfo
+      AuthorizationType: NONE
+      OperationName: SetUserInfoRoute
+      Target: !Join
+        - "/"
+        - - "integrations"
+          - !Ref SetUserInfoInteg
+  SetUserInfoInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WSPlanningPokerWebSocket
+      Description: Send Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SetUserInfoFunction.Arn}/invocations
+  VoteRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WSPlanningPokerWebSocket
+      RouteKey: vote
+      AuthorizationType: NONE
+      OperationName: VoteRoute
+      Target: !Join
+        - "/"
+        - - "integrations"
+          - !Ref VoteInteg
+  VoteInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WSPlanningPokerWebSocket
+      Description: Send Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${VoteFunction.Arn}/invocations
+  Deployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+      - ConnectRoute
+      - SendRoute
+      - DisconnectRoute
+      - SetUserInfoRoute
+      - VoteRoute
+    Properties:
+      ApiId: !Ref WSPlanningPokerWebSocket
+  Stage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      StageName: prod
+      Description: Prod Stage
+      DeploymentId: !Ref Deployment
+      ApiId: !Ref WSPlanningPokerWebSocket
+  PPConnectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "connectionId"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "connectionId"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      SSESpecification:
+        SSEEnabled: True
+      TableName: !Ref PPConnectionsTableName
+  PPVotesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "voteId"
+          AttributeType: "S"
+        - AttributeName: "sessionId"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "voteId"
+          KeyType: "HASH"
+        - AttributeName: "sessionId"
+          KeyType: "RANGE"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      SSESpecification:
+        SSEEnabled: True
+      TableName: !Ref PPVotesTableName
+  OnConnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: onconnect/
+      Handler: app.handler
+      MemorySize: 256
+      Runtime: nodejs12.x
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref PPConnectionsTableName
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PPConnectionsTableName
+  OnConnectPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - WSPlanningPokerWebSocket
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref OnConnectFunction
+      Principal: apigateway.amazonaws.com
+  OnDisconnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ondisconnect/
+      Handler: app.handler
+      MemorySize: 256
+      Runtime: nodejs12.x
+      Environment:
+        Variables:
+          VOTES_TABLE_NAME: !Ref PPVotesTableName
+          CONNECTIONS_TABLE_NAME: !Ref PPConnectionsTableName
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PPVotesTableName
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PPConnectionsTableName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - "execute-api:ManageConnections"
+              Resource:
+                - !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WSPlanningPokerWebSocket}/*"
+  OnDisconnectPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - WSPlanningPokerWebSocket
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref OnDisconnectFunction
+      Principal: apigateway.amazonaws.com
+  SendMessageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: sendmessage/
+      Handler: app.handler
+      MemorySize: 256
+      Runtime: nodejs12.x
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref PPConnectionsTableName
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PPConnectionsTableName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - "execute-api:ManageConnections"
+              Resource:
+                - !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WSPlanningPokerWebSocket}/*"
+  SendMessagePermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - WSPlanningPokerWebSocket
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref SendMessageFunction
+      Principal: apigateway.amazonaws.com
+  SetUserInfoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: setuserinfo/
+      Handler: app.handler
+      MemorySize: 256
+      Runtime: nodejs12.x
+      Environment:
+        Variables:
+          CONNECTIONS_TABLE_NAME: !Ref PPConnectionsTableName
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PPConnectionsTableName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - "execute-api:ManageConnections"
+              Resource:
+                - !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WSPlanningPokerWebSocket}/*"
+  SetUserInfoPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - WSPlanningPokerWebSocket
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref SetUserInfoFunction
+      Principal: apigateway.amazonaws.com
+  VoteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: vote/
+      Handler: app.handler
+      MemorySize: 256
+      Runtime: nodejs12.x
+      Environment:
+        Variables:
+          VOTES_TABLE_NAME: !Ref PPVotesTableName
+          CONNECTIONS_TABLE_NAME: !Ref PPConnectionsTableName
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PPVotesTableName
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PPConnectionsTableName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - "execute-api:ManageConnections"
+              Resource:
+                - !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WSPlanningPokerWebSocket}/*"
+  VotePermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - WSPlanningPokerWebSocket
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref VoteFunction
+      Principal: apigateway.amazonaws.com
+Outputs:
+  ConnectionsTableArn:
+    Description: "Connections table ARN"
+    Value: !GetAtt PPConnectionsTable.Arn
+
+  VotesTableArn:
+    Description: "Votes table ARN"
+    Value: !GetAtt PPVotesTable.Arn
+
+  OnConnectFunctionArn:
+    Description: "OnConnect function ARN"
+    Value: !GetAtt OnConnectFunction.Arn
+
+  OnDisconnectFunctionArn:
+    Description: "OnDisconnect function ARN"
+    Value: !GetAtt OnDisconnectFunction.Arn
+
+  SendMessageFunctionArn:
+    Description: "SendMessage function ARN"
+    Value: !GetAtt SendMessageFunction.Arn
+
+  SetUserInfoFunctionArn:
+    Description: "SetUserInfo function ARN"
+    Value: !GetAtt SetUserInfoFunction.Arn
+
+  VoteFunctionArn:
+    Description: "Vote function ARN"
+    Value: !GetAtt VoteFunction.Arn
+
+  WebSocketURI:
+    Description: "The WSS Protocol URI to connect to"
+    Value:
+      !Join [
+        "",
+        [
+          "wss://",
+          !Ref WSPlanningPokerWebSocket,
+          ".execute-api.",
+          !Ref "AWS::Region",
+          ".amazonaws.com/",
+          !Ref "Stage",
+        ],
+      ]

@@ -1,0 +1,13 @@
+{
+    "name": "vote",
+    "version": "1.0.0",
+    "description": "on vote, save the vote, then send out updated vote data to all connections",
+    "main": "src/app.js",
+    "author": "Kyle Wade",
+    "license": "MIT",
+    "dependencies": {},
+    "devDependencies": {
+      "aws-sdk": "^2.739.0"
+    }
+  }
+  

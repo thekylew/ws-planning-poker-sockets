@@ -1,0 +1,13 @@
+{
+    "name": "set-user-info",
+    "version": "1.0.0",
+    "description": "on setuserinfo, update the metadata associated with a connection id",
+    "main": "src/app.js",
+    "author": "Kyle Wade",
+    "license": "MIT",
+    "dependencies": {},
+    "devDependencies": {
+      "aws-sdk": "^2.739.0"
+    }
+  }
+  

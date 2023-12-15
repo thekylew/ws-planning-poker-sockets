@@ -1,0 +1,12 @@
+{
+  "name": "on-connect",
+  "version": "1.0.0",
+  "description": "on connect, create a connection record with id but no other data",
+  "main": "src/app.js",
+  "author": "Kyle Wade",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "aws-sdk": "^2.739.0"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "send-message",
+  "version": "1.0.0",
+  "description": "on message, repeat message to all other users in the session associated with the connection id",
+  "main": "src/app.js",
+  "author": "Kyle Wade",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "aws-sdk": "^2.739.0"
+  }
+}

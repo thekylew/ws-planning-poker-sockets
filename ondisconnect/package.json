@@ -1,0 +1,12 @@
+{
+  "name": "on-disconnect",
+  "version": "1.0.0",
+  "description": "on disconnect, delete records associated with the disconnected id",
+  "main": "src/app.js",
+  "author": "Kyle Wade",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "aws-sdk": "^2.739.0"
+  }
+}
