@@ -81,7 +81,7 @@ const sendUpdatedUserList = async (sessionId, event) => {
     connectionData = await ddb
       .scan({
         TableName: CONNECTIONS_TABLE_NAME,
-        ProjectionExpression: "connectionId, #nm, isAdmin, sessionId",
+        ProjectionExpression: "connectionId, #nm, isScrumMaster, sessionId",
         ExpressionAttributeNames: {
           "#nm": "name",
         },

@@ -180,7 +180,7 @@ Resources:
       CodeUri: onconnect/
       Handler: app.handler
       MemorySize: 256
-      Runtime: nodejs12.x
+      Runtime: nodejs16.x
       Environment:
         Variables:
           TABLE_NAME: !Ref PPConnectionsTableName
@@ -201,7 +201,7 @@ Resources:
       CodeUri: ondisconnect/
       Handler: app.handler
       MemorySize: 256
-      Runtime: nodejs12.x
+      Runtime: nodejs16.x
       Environment:
         Variables:
           VOTES_TABLE_NAME: !Ref PPVotesTableName
@@ -231,7 +231,7 @@ Resources:
       CodeUri: sendmessage/
       Handler: app.handler
       MemorySize: 256
-      Runtime: nodejs12.x
+      Runtime: nodejs16.x
       Environment:
         Variables:
           TABLE_NAME: !Ref PPConnectionsTableName
@@ -258,7 +258,7 @@ Resources:
       CodeUri: setuserinfo/
       Handler: app.handler
       MemorySize: 256
-      Runtime: nodejs12.x
+      Runtime: nodejs16.x
       Environment:
         Variables:
           CONNECTIONS_TABLE_NAME: !Ref PPConnectionsTableName
@@ -285,7 +285,7 @@ Resources:
       CodeUri: vote/
       Handler: app.handler
       MemorySize: 256
-      Runtime: nodejs12.x
+      Runtime: nodejs16.x
       Environment:
         Variables:
           VOTES_TABLE_NAME: !Ref PPVotesTableName

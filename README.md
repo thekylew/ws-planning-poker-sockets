@@ -4,7 +4,6 @@ This is the backend for a planning poker app I made to learn AWS API Gateway Web
 
 I will absolutely not be providing support for this code under any circumstances. 
 
-
 # Deploying to your account
 
 sam deploy --guided

@@ -15,7 +15,7 @@ exports.handler = async (event) => {
   const parsedData = JSON.parse(parsedMessage.data);
   const {
     name,
-    isAdmin,
+    isScrumMaster,
     sessionId = "default",
   } = parsedData;
 
@@ -26,11 +26,11 @@ exports.handler = async (event) => {
     },
     ExpressionAttributeValues: {
       ":name": name,
-      ":isAdmin": isAdmin,
+      ":isScrumMaster": isScrumMaster,
       ":sessionId": sessionId,
     },
     UpdateExpression:
-      "set #nm = :name, isAdmin = :isAdmin, sessionId = :sessionId",
+      "set #nm = :name, isScrumMaster = :isScrumMaster, sessionId = :sessionId",
     ExpressionAttributeNames: {
       "#nm": "name",
     },
@@ -46,7 +46,7 @@ exports.handler = async (event) => {
     connectionData = await ddb
       .scan({
         TableName: CONNECTIONS_TABLE_NAME,
-        ProjectionExpression: "connectionId, #nm, isAdmin, sessionId",
+        ProjectionExpression: "connectionId, #nm, isScrumMaster, sessionId",
         ExpressionAttributeNames: {
           "#nm": "name",
         },
