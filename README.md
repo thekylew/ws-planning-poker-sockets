@@ -1,38 +1,25 @@
 # WebSockets Planning Poker
 
-This is the backend for a planning poker app I made to learn AWS API Gateway WebSockets. There is an API Gateway that supports WebSockets, plus four Lambdas used to process messages - onConnect (keeps track of connections), onDisconnect (keeps track of disconnects), sendMessage (repeats a message sent by one user to all users), and setUserInfo (allows a user's info to be persisted).
+This is the backend for a planning poker app I made to learn AWS API Gateway WebSockets. There is an API Gateway that supports WebSockets, plus five Lambdas used to process messages:
 
-I will absolutely not be providing support for this code under any circumstances. 
+1. `onConnect`: Adds a record to the DynamoDB Connections table when a user connects
+2. `setUserInfo`: Sets a user's name and role in the Connections table
+3. `sendMessage`: Repeats a message sent by one user to all other users on the team
+4. `vote`: Records a user's vote on a story in the DynamoDB Votes table
+5. `onDisconnect`: When a user disconnects, removes all info related to that user's voting session from the Connections and Votes table
+
+Each endpoint has its own folder, and the infrastructure is described in the template.yaml file.
+
+I will absolutely not be providing support for this code under any circumstances, but you are welcome to do whatever you like with it.
 
 # Deploying to your account
 
-sam deploy --guided
+1. Set up an AWS account, create an access key and secret
+2. Install AWS CLI: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
+3. Install SAM CLI: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html
+4. In the root of this folder, run `aws configure`; sets up an access key and secret that will be used to access your account.
+5. In the root of this folder, run `sam deploy --guided` and follow the prompts
 
-aws cloudformation describe-stacks \
-    --stack-name ws-planning-poker-backend --query 'Stacks[].Outputs'
+Once the code is deployed, you can get the URL of the API either from the command-line output of the SAM CLI or by logging in to your AWS Account, going to API Gateway, and finding the API.
 
-**Note:** `.gitignore` contains the `samconfig.toml`, hence make sure backup this file, or modify your .gitignore locally.
-
-## Testing the API
-
-To test the WebSocket API, you can use [wscat](https://github.com/websockets/wscat), an open-source command line tool.
-
-1. [Install NPM](https://www.npmjs.com/get-npm).
-2. Install wscat:
-``` bash
-$ npm install -g wscat
-```
-3. On the console, connect to your published API endpoint by executing the following command:
-``` bash
-$ wscat -c wss://{YOUR-API-ID}.execute-api.{YOUR-REGION}.amazonaws.com/{STAGE}
-```
-4. To test the sendMessage function, send a JSON message like the following example. The Lambda function sends it back using the callback URL: 
-``` bash
-$ wscat -c wss://bg3gu742ka.execute-api.us-east-1.amazonaws.com/prod
-connected (press CTRL+C to quit)
-> {"action":"sendmessage", "data":"hello world"}
-< hello world
-```
-
-## License Summary
-All code copyright 2022 Kyle Wade. All rights reserved.
+**Note:** `.gitignore` contains the `samconfig.toml`, hence make sure to backup this file, or modify your .gitignore locally.
